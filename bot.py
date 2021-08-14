@@ -13,7 +13,7 @@ import json
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
 
-sendTime = time(20, 46, 0)
+sendTime = time(23, 11, 0)
 #channel_id = 875954792319569974
 
 client = Bot(command_prefix="!")
@@ -41,18 +41,6 @@ async def where(ctx):
 async def anchor(ctx): # for lack of a better adjective
     channel_id = ctx.channel.id
     await ctx.send(channel_id)
-    """if channel in anchors['']:
-        await ctx.send('Channel already receiving all alerts.')
-        return
-    r = await confirmation(ctx, 'Are you sure you want to receive all alerts?')
-    if r:
-        anchors[''].append(channel)
-        logging.info(str(channel)+' '+ctx.channel.__str__()+' has been anchored for all keywords.')
-        await ctx.send('This channel will receive all alerts for all keywords.')
-        return
-    else:
-        await ctx.send('Cancelled.')
-        return"""
 
 @client.command(name="settime", help = "Set time of the day at which a post is made (UTC). Enter in a 4 digit style (ex. 0428 = 4:28 AM UTC)")
 async def settime(ctx, message=''):
@@ -74,20 +62,21 @@ async def called_once_a_day():
     await channel.send("Hell yeah this works")
 
 async def background_task():
-    now = datetime.utcnow()
+    """now = datetime.utcnow()
     if now.time() > WHEN:  
         tomorrow = datetime.combine(now.date() + timedelta(days=1), time(0))
         seconds = (tomorrow - now).total_seconds()  # Seconds until tomorrow (midnight)
-        await asyncio.sleep(seconds)   # Sleep until tomorrow and then the loop will start 
+        await asyncio.sleep(seconds)   # Sleep until tomorrow and then the loop will start """
     while True:
         now = datetime.utcnow() 
-        target_time = datetime.combine(now.date(), WHEN)
+        target_time = datetime.combine(now.date(), sendTime)
         seconds_until_target = (target_time - now).total_seconds()
-        await asyncio.sleep(seconds_until_target)  # Sleep until we hit the target time
-        await called_once_a_day()  # Call the helper function that sends the message
-        tomorrow = datetime.combine(now.date() + timedelta(days=1), time(0))
-        seconds = (tomorrow - now).total_seconds()  # Seconds until tomorrow (midnight)
-        await asyncio.sleep(seconds)   # Sleep until tomorrow and then the loop will start a new iteration
+        if seconds_until_target >= 0:
+            await asyncio.sleep(seconds_until_target)  # Sleep until we hit the target time
+            await called_once_a_day()  # Call the helper function that sends the message
+            """tomorrow = datetime.combine(now.date() + timedelta(days=1), time(0))
+            seconds = (tomorrow - now).total_seconds()  # Seconds until tomorrow (midnight)
+            await asyncio.sleep(seconds)   # Sleep until tomorrow and then the loop will start a new iteration"""
 
 
 
