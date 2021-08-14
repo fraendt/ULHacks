@@ -1,30 +1,20 @@
 import asyncio
 import logging
+import math
 import discord
+from discord.ext import commands
 from discord.ext.commands import Bot
 from discord.ext.commands.errors import MissingRequiredArgument
+from datetime import datetime, time, timedelta
 import os
 from dotenv import load_dotenv
-import collector
 import json
-import f5interface
 
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
 
-try:
-    with open('keywords.txt') as f:
-        keywords = f.readlines()
-except:
-    keywords = []
-
-try:
-    with open('anchors.json') as f:
-        anchors = json.load(f)
-except:
-    anchors = {'':[]}
-    anchors.update({k:[] for k in keywords})
-
+sendTime = time(23, 11, 0)
+#channel_id = 875954792319569974
 
 client = Bot(command_prefix="!")
 
@@ -47,55 +37,52 @@ async def where(ctx):
     w=ctx
     await ctx.send(ctx.channel)
 
-@client.command(name='keywords')
-async def print_kwords(ctx):
-    await ctx.send('```'+'\n'.join(k for k in keywords)+'```')
+@client.command(name='anchor', description='send f5bot messages here', help = "Have the bot send messages to the channel !anchor was called in.")
+async def anchor(ctx): # for lack of a better adjective
+    channel_id = ctx.channel.id
+    await ctx.send(channel_id)
 
-@client.command(name='anchor', description='send f5bot messages here')
-async def anchor(ctx, keyword=''): # for lack of a better adjective
-    channel = ctx.channel.id
-    print(repr(keyword))
-    if keyword == '':
-        if channel in anchors['']:
-            await ctx.send('Channel already receiving all alerts.')
-            return
-        r = await confirmation(ctx, 'Are you sure you want to receive all alerts?')
-        if r:
-            anchors[''].append(channel)
-            logging.info(str(channel)+' '+ctx.channel.__str__()+' has been anchored for all keywords.')
-            await ctx.send('This channel will receive all alerts for all keywords.')
-            return
-        else:
-            await ctx.send('Cancelled.')
-            return      
-    if keyword not in keywords:
-        await ctx.send('Keyword has not been added yet.')
+@client.command(name="settime", help = "Set time of the day at which a post is made (UTC). Enter in a 4 digit style (ex. 0428 = 4:28 AM UTC)")
+async def settime(ctx, message=''):
+    if message=='':
         return
-    if channel in anchors[keyword]:
-        await ctx.send('Channel already receiving alerts for this keyword.')
+    try:
+        float(message)
+    except:
+        await ctx.send("Enter a number, dipshit.")
     else:
-        anchors[keyword].append(channel)
-        await ctx.send('Channel now receiving alerts for this keyword.')
+        message = int(message)
+        sendTime = time(math.floor(message/100) % 24, message % 100,0)
+        await ctx.send("Time set to " + sendTime.strftime("%H:%M"))
 
-@client.command(name='check', description='check inbox', help='check inbox')
-async def check_mail(ctx):
-    logging.info(ctx.author.__str__()+' requested a inbox check')
-    res = collector.check_inbox()
-    if len(res) == 0:
-        embed=discord.Embed(title="sorry bruh",
-                        description="theres nothing",
-                        color=0xFF5733)
-        await ctx.send(embed=embed)
-        return
-    for i in res:
-        parsed = collector.parse(i)
-        for keyword, head, link, location in parsed:
-            embed=discord.Embed(title=head,
-                                url=link,
-                                description=location,
-                                color=0x0096FF)
 
-            await send_alert(keyword, ctx, embed=embed)
+async def called_once_a_day(): 
+    await bot.wait_until_ready() 
+    channel = bot.get_channel(channel_id) 
+    await channel.send("Hell yeah this works")
+
+async def background_task():
+    """now = datetime.utcnow()
+    if now.time() > WHEN:  
+        tomorrow = datetime.combine(now.date() + timedelta(days=1), time(0))
+        seconds = (tomorrow - now).total_seconds()  # Seconds until tomorrow (midnight)
+        await asyncio.sleep(seconds)   # Sleep until tomorrow and then the loop will start """
+    while True:
+        now = datetime.utcnow() 
+        target_time = datetime.combine(now.date(), sendTime)
+        seconds_until_target = (target_time - now).total_seconds()
+        if seconds_until_target >= 0:
+            await asyncio.sleep(seconds_until_target)  # Sleep until we hit the target time
+            await called_once_a_day()  # Call the helper function that sends the message
+            """tomorrow = datetime.combine(now.date() + timedelta(days=1), time(0))
+            seconds = (tomorrow - now).total_seconds()  # Seconds until tomorrow (midnight)
+            await asyncio.sleep(seconds)   # Sleep until tomorrow and then the loop will start a new iteration"""
+
+
+
+
+
+
 
 async def send_alert(keyword, ctx=None, **content):
     recipients = anchors['']
@@ -132,13 +119,7 @@ async def confirmation(ctx, message):
     await ctx.send(reaction)
     m.delete()
 
-@client.event
-async def on_ready():
-    logging.info("Ready")
-    await check_mail_automatic()
     
-client.run(os.getenv('flimble'))
-with open('anchors.json','w') as f:
-    json.dump(anchors, f, indent=4)
-with open('keywords.txt','w') as f:
-    f.write('\n'.join(keywords))
+if __name__ == "__main__":
+    client.loop.create_task(background_task())
+    client.run(os.getenv('flimble'))
