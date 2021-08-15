@@ -12,8 +12,7 @@ import json
 
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
-
-sendTime = time(23, 11, 0)
+sendTime = time(23, 40, 0)
 #channel_id = 875954792319569974
 
 client = Bot(command_prefix="!")
@@ -50,9 +49,13 @@ async def settime(ctx, message=''):
         float(message)
     except:
         await ctx.send("Enter a number, dipshit.")
+        return
     else:
         message = int(message)
-        sendTime = time(math.floor(message/100) % 24, message % 100,0)
+        if message % 100 > 60 or math.floor(message/100) > 23:
+            await ctx.send("Invalid time.")
+            return
+        sendTime = time(math.floor(message/100) % 24, message % 100, 0)
         await ctx.send("Time set to " + sendTime.strftime("%H:%M"))
 
 
@@ -62,21 +65,10 @@ async def called_once_a_day():
     await channel.send("Hell yeah this works")
 
 async def background_task():
-    """now = datetime.utcnow()
-    if now.time() > WHEN:  
-        tomorrow = datetime.combine(now.date() + timedelta(days=1), time(0))
-        seconds = (tomorrow - now).total_seconds()  # Seconds until tomorrow (midnight)
-        await asyncio.sleep(seconds)   # Sleep until tomorrow and then the loop will start """
     while True:
-        now = datetime.utcnow() 
-        target_time = datetime.combine(now.date(), sendTime)
-        seconds_until_target = (target_time - now).total_seconds()
-        if seconds_until_target >= 0:
-            await asyncio.sleep(seconds_until_target)  # Sleep until we hit the target time
-            await called_once_a_day()  # Call the helper function that sends the message
-            """tomorrow = datetime.combine(now.date() + timedelta(days=1), time(0))
-            seconds = (tomorrow - now).total_seconds()  # Seconds until tomorrow (midnight)
-            await asyncio.sleep(seconds)   # Sleep until tomorrow and then the loop will start a new iteration"""
+        now = datetime.utcnow()
+        if now == sendTime:
+            await called_once_a_day()
 
 
 
