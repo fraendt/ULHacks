@@ -1,16 +1,21 @@
 import aiohttp
 import asyncio
 from bs4 import BeautifulSoup
+import random 
 
 # get title, image, description, url of wikihow article
 async def wikihow_random():
-    url = 'https://www.wikihow.com/Special:Randomizer'
+    base_url = 'https://www.wikihow.com/Special:Randomizer/Category:'
+    categories = ["Hobbies-and-Crafts"]
+
+    url = base_url + "Food-and-Entertaining" # + random.choice(categories)
+    # print(url)
     ret = {}
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as resp:
             resolved_url = resp.url
             ret["url"] = resolved_url
-            print(resolved_url)
+            # print(resolved_url)
             text = await resp.text()
             soup = BeautifulSoup(text, "html.parser")
             
@@ -30,10 +35,13 @@ async def wikihow_random():
             title = soup.find("meta", {"property": "og:title"})
             if title is not None:
                 title = title["content"]
-            ret["image"] = title
+            ret["title"] = title
 
-            print(desc)
+            # print(desc)
 
             return ret
 
-asyncio.run(wikihow_random())
+
+
+if __name__ == "__main__":
+    asyncio.run(wikihow_random())
